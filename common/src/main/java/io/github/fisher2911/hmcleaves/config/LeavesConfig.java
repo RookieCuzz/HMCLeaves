@@ -61,15 +61,7 @@ import org.jetbrains.annotations.Unmodifiable;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -90,6 +82,7 @@ public class LeavesConfig {
     private static final List<Material> LOGS = new ArrayList<>();
     private static final List<Material> STRIPPED_LOGS = new ArrayList<>();
     private static final List<Material> SAPLINGS = new ArrayList<>();
+
 
     public static final Set<Material> AGEABLE_MATERIALS = Set.of(
             Material.SUGAR_CANE,
@@ -385,10 +378,13 @@ public class LeavesConfig {
         return this.blockDataMap.get(getDefaultLeafStringId(leafMaterial));
     }
 
+
     @Nullable
     public BlockData getDefaultLogData(Material logMaterial) {
         return this.blockDataMap.get(getDefaultLogStringId(logMaterial));
     }
+
+
 
     @Nullable
     public BlockData getDefaultLogData(Material logMaterial, Axis axis) {
@@ -630,6 +626,7 @@ public class LeavesConfig {
                             .collect(Collectors.toList())
             );
         }
+
         for (Material log : STRIPPED_LOGS) {
             this.textureFileGenerator.generateFile(
                     Material.NOTE_BLOCK,
@@ -640,6 +637,17 @@ public class LeavesConfig {
                             .collect(Collectors.toList())
             );
         }
+        this.textureFileGenerator.generateFile(
+                Material.CAVE_VINES,
+                this.blockDataMap.values().stream()
+                        .filter(CaveVineData.class::isInstance)
+                        .filter(blockData -> blockData.realBlockType()==Material.CAVE_VINES)
+                        .filter(blockData -> blockData.modelPath()!=null)
+                        .collect(Collectors.toList())
+                );
+        System.out.println(
+                "try to spawn cave_vines"
+        );
         this.loadDefaults();
 
         for (final var entry : this.blockDataMap.entrySet()) {
@@ -1264,6 +1272,8 @@ public class LeavesConfig {
             }
             this.blockSupportPredicateMap.put(itemId, placePredicate);
             this.blockSupportPredicateMap.put(withGlowBerryId, placePredicate);
+
+            System.out.println("放入的自定义方块元数据为"+blockData.getCurrentId());
             this.blockDataMap.put(itemId, blockData);
             this.blockDataMap.put(withGlowBerryId, blockData.withGlowBerry(true));
         }

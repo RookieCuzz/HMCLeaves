@@ -21,6 +21,7 @@
 package io.github.fisher2911.hmcleaves.listener;
 
 import io.github.fisher2911.hmcleaves.HMCLeaves;
+import io.github.fisher2911.hmcleaves.api.HMCLeavesAPI;
 import io.github.fisher2911.hmcleaves.api.event.HMCLeavesBlockDataBreakEvent;
 import io.github.fisher2911.hmcleaves.api.event.HMCLeavesBlockDataPlaceEvent;
 import io.github.fisher2911.hmcleaves.cache.BlockCache;
@@ -116,12 +117,21 @@ public class InteractionListener implements Listener {
             return;
         }
         final Player player = event.getPlayer();
+        if (clickedBlockData instanceof  CaveVineData){
+            checkGrow(player,block,clickedWith);
+            return;
+
+        }
         if (clickedBlockData instanceof final CaveVineData caveVineData && caveVineData.glowBerry() && !player.isSneaking()) {
+
+            System.out.println("place cave vines" );
+
             if (!(block.getBlockData() instanceof final CaveVinesPlant caveVines)) return;
             if (!caveVineData.shouldGrowBerries()) {
                 event.setCancelled(true);
                 return;
             }
+
             this.blockCache.addBlockData(clickedPosition, caveVineData.withGlowBerry(!caveVines.isBerries()));
             return;
         }
@@ -139,7 +149,7 @@ public class InteractionListener implements Listener {
         final Material placeLocationType = placeLocation.getBlock().getType();
 
         if (this.checkStripLog(player, block, clickedWith)) return;
-
+        System.out.println("sout");
         if (!this.isReplaceable(placeLocation.getBlock().getBlockData())) {
             return;
         }
@@ -195,6 +205,8 @@ public class InteractionListener implements Listener {
         if (sound != null) {
             world.playSound(placeLocation, sound, 1, 1);
         }
+
+        //放置树叶
         if (placedBlock.getBlockData() instanceof final Leaves leaves) {
             if (!(blockData instanceof final LeafData leafData)) {
                 return;
@@ -209,7 +221,7 @@ public class InteractionListener implements Listener {
             if (waterlogged && leaves instanceof final Waterlogged waterloggedData) {
                 waterloggedData.setWaterlogged(true);
             }
-            placedBlock.setBlockData(leaves, true);
+                placedBlock.setBlockData(leaves, true);
             return;
         }
         if (blockData instanceof final LogData logData && placedBlock.getBlockData() instanceof final Orientable orientable) {
@@ -481,7 +493,7 @@ public class InteractionListener implements Listener {
         }
         if (blockData instanceof final CaveVineData caveVineData && clicked.getBlockData() instanceof final CaveVinesPlant caveVinesPlant) {
             player.sendMessage(caveVineData.id() + " worldMaterial: " + clicked.getType() + " Display berries: " + caveVineData.glowBerry() + " server berries: " + caveVinesPlant.isBerries() + " "
-                    + "display age: " + caveVineData.getNewState(null).getAge() + " server age: " +
+                    + "display age: " + (caveVineData.getNewState(null).getAge()+1) + " server age: " +
                     ((caveVinesPlant instanceof final CaveVines caveVines) ? caveVines.getAge() : "no age"));
             return true;
         }
@@ -506,6 +518,44 @@ public class InteractionListener implements Listener {
             Material.DIAMOND_AXE,
             Material.NETHERITE_AXE
     );
+
+    private boolean checkGrow(Player player, Block block, ItemStack clickedWith) {
+        // 检查玩家是否手持钻石斧
+        if (clickedWith == null || clickedWith.getType() != Material.DIAMOND_AXE) return false;
+
+        // 获取方块位置和数据
+        final Position position = Position.fromLocation(block.getLocation());
+        final BlockData blockData = this.blockCache.getBlockData(position);
+
+        // 检查方块是否是洞穴藤蔓类型
+        if (!(blockData instanceof CaveVineData)) {
+            return false;
+        }
+
+        // 获取下方的方块
+        Block belowBlock = block.getRelative(BlockFace.DOWN);
+
+        // 检查下方是否为空气或其他可替换方块
+        if (belowBlock.getType() != Material.AIR && !isReplaceable(belowBlock.getBlockData())) {
+            return false;
+        }
+        HMCLeavesAPI.getInstance().setCustomBlock(block.getLocation(),"custom_cave_vine",true);
+
+         HMCLeavesAPI.getInstance().setCustomBlock(belowBlock.getLocation(),"custom_cave_vine",true);
+        // 消耗玩家手中的藤蔓
+        if (player.getGameMode() != GameMode.CREATIVE) {
+            clickedWith.setAmount(clickedWith.getAmount() - 1);
+        }
+
+        // 播放生长音效
+        final Sound sound = Sound.BLOCK_VINE_PLACE;
+        if (sound != null) {
+            block.getWorld().playSound(belowBlock.getLocation(), sound, 1, 1);
+        }
+
+
+        return true;
+    }
 
     private boolean checkStripLog(Player player, Block block, ItemStack clickedWith) {
         if (!AXES.contains(clickedWith.getType())) return false;

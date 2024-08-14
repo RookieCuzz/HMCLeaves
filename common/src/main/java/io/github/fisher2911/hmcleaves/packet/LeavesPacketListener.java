@@ -50,6 +50,7 @@ import io.github.fisher2911.hmcleaves.util.LeafDropUtil;
 import io.github.fisher2911.hmcleaves.world.ChunkPosition;
 import io.github.fisher2911.hmcleaves.world.Position;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -86,6 +87,8 @@ public class LeavesPacketListener extends PacketListenerAbstract {
 
     private static final int HEIGHT_BELOW_ZERO = 64;
 
+
+    //packet
     @Override
     public void onPacketSend(PacketSendEvent event) {
         if (!(event.getPlayer() instanceof final Player player)) return;
@@ -95,14 +98,19 @@ public class LeavesPacketListener extends PacketListenerAbstract {
             final World world = player.getWorld();
             final int heightAdjustment = world.getMinHeight();
             this.handleChunkSend(event, world.getUID(), heightAdjustment < 0 ? HEIGHT_BELOW_ZERO : 0, player.getUniqueId());
+
+            System.out.println("CHUNK_DATA");
             return;
         }
         if (packetType == PacketType.Play.Server.BLOCK_CHANGE) {
             this.handleBlockChange(event, player.getWorld().getUID());
+            System.out.println("BLOCK_CHANGE");
             return;
         }
         if (packetType == PacketType.Play.Server.MULTI_BLOCK_CHANGE) {
             this.handleMultiBlockChange(event, player.getWorld().getUID());
+
+            System.out.println("MULTI_BLOCK_CHANGE");
             return;
         }
     }
@@ -137,6 +145,7 @@ public class LeavesPacketListener extends PacketListenerAbstract {
         final ChunkPosition chunkPos = ChunkPosition.at(world, chunkX, chunkZ);
         final ChunkBlockCache chunkCache = this.blockCache.getChunkBlockCache(chunkPos);
         if (chunkCache == null) return;
+        System.out.println("MainThread: "+Bukkit.isPrimaryThread());
         for (var entry : chunkCache.getBlockDataMap().entrySet()) {
             final var position = entry.getKey();
             final int chunkLevel = position.y() / 16 + heightAdjustment / 16;
@@ -149,13 +158,19 @@ public class LeavesPacketListener extends PacketListenerAbstract {
 //            System.out.println("actualY: " + actualY);
             final int actualZ = ChunkUtil.getCoordInChunk(position.z());
             final var actualState = chunk.get(actualX, actualY, actualZ);
-            final Material worldMaterial = SpigotConversionUtil.toBukkitBlockData(actualState).getMaterial();
+             Material worldMaterial = SpigotConversionUtil.toBukkitBlockData(actualState).getMaterial();
+            if (blockData == BlockData.EMPTY) return;
+            if (worldMaterial==Material.CAVE_VINES_PLANT&&!worldMaterial.isAir()){
+                worldMaterial=Material.CAVE_VINES;
+            }
+            final WrappedBlockState sendState = blockData.getNewState(worldMaterial);
+
             chunk.set(
                     PacketEvents.getAPI().getServerManager().getVersion().toClientVersion(),
                     actualX,
                     actualY,
                     actualZ,
-                    blockData.getNewState(worldMaterial).getGlobalId()
+                    sendState.getGlobalId()
             );
         }
     }
@@ -179,10 +194,17 @@ public class LeavesPacketListener extends PacketListenerAbstract {
                     blockPosition.getZ()
             );
             final BlockData blockData = this.blockCache.getBlockData(position);
-            final Material worldMaterial = SpigotConversionUtil.toBukkitBlockData(packet.getBlockState()).getMaterial();
+             Material worldMaterial = SpigotConversionUtil.toBukkitBlockData(packet.getBlockState()).getMaterial();
             if (blockData == BlockData.EMPTY) return;
+            if (worldMaterial.isAir()){
+                return;
+            }
+            System.out.println("**++** world material:"+ worldMaterial);
+            if (worldMaterial==Material.CAVE_VINES_PLANT){
+                worldMaterial=Material.CAVE_VINES;
+            }
             final WrappedBlockState sendState = blockData.getNewState(worldMaterial);
-            if (!blockData.isWorldTypeSame(worldMaterial) && worldMaterial != Material.MOVING_PISTON) {
+            if (  !blockData.isWorldTypeSame(worldMaterial) &&worldMaterial == Material.MOVING_PISTON) {
                 this.blockCache.removeBlockData(position);
                 LeafDropUtil.addToDropPositions(this.blockCache, position, blockData);
                 return;
@@ -211,7 +233,13 @@ public class LeavesPacketListener extends PacketListenerAbstract {
                 );
                 final BlockData blockData = this.blockCache.getBlockData(position);
                 if (blockData == BlockData.EMPTY) continue;
-                final Material worldMaterial = SpigotConversionUtil.toBukkitBlockData(PacketUtils.getState(block)).getMaterial();
+                 Material worldMaterial = SpigotConversionUtil.toBukkitBlockData(PacketUtils.getState(block)).getMaterial();
+                if (worldMaterial.isAir()){
+                    continue;
+                }
+                if (worldMaterial==Material.CAVE_VINES_PLANT){
+                    worldMaterial=Material.CAVE_VINES;
+                }
                 final WrappedBlockState sendState = blockData.getNewState(worldMaterial);
                 if (!blockData.isWorldTypeSame(worldMaterial) && worldMaterial != Material.MOVING_PISTON) {
                     this.blockCache.removeBlockData(position);

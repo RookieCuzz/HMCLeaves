@@ -30,12 +30,7 @@ import io.github.fisher2911.hmcleaves.config.LeavesConfig;
 import io.github.fisher2911.hmcleaves.data.LeafDatabase;
 import io.github.fisher2911.hmcleaves.debug.Debugger;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
-import io.github.fisher2911.hmcleaves.listener.InteractionListener;
-import io.github.fisher2911.hmcleaves.listener.LeafAndLogEditListener;
-import io.github.fisher2911.hmcleaves.listener.LeafDropListener;
-import io.github.fisher2911.hmcleaves.listener.PlayerJoinListener;
-import io.github.fisher2911.hmcleaves.listener.SoundListener;
-import io.github.fisher2911.hmcleaves.listener.WorldAndChunkLoadListener;
+import io.github.fisher2911.hmcleaves.listener.*;
 import io.github.fisher2911.hmcleaves.nms.FeatureHandler;
 import io.github.fisher2911.hmcleaves.packet.BlockBreakManager;
 import io.github.fisher2911.hmcleaves.packet.LeavesPacketListener;
@@ -111,6 +106,7 @@ public class HMCLeaves extends JavaPlugin {
         this.blockBreakManager = new BlockBreakManager(new ConcurrentHashMap<>(), this);
         this.worldAndChunkLoadListener = new WorldAndChunkLoadListener(this);
         this.leavesPacketListener = new LeavesPacketListener(this);
+
         this.registerPacketListeners();
         this.registerListeners();
         Hooks.load(this);
@@ -120,9 +116,12 @@ public class HMCLeaves extends JavaPlugin {
         this.getCommand("hmcleaves").setExecutor(new LeavesCommand(this));
         final int bStatsPluginId = 16900;
         final Metrics metrics = new Metrics(this, bStatsPluginId);
+
+        getServer().getPluginManager().registerEvents(new BlockGrowListener(), this);
     }
 
     public void reload() {
+        System.out.println("reloads");
         this.leavesConfig.reload();
     }
 

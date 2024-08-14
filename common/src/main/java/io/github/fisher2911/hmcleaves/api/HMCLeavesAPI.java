@@ -88,6 +88,7 @@ public class HMCLeavesAPI {
         this.blockCache.addBlockData(Position.fromLocation(location), blockData);
         if (setBlockInWorld) {
             location.getBlock().setType(blockData.worldBlockType());
+            System.out.println("world type:"+blockData.worldBlockType());
         }
         return true;
     }

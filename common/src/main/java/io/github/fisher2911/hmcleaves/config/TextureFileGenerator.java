@@ -27,12 +27,12 @@ import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import io.github.fisher2911.hmcleaves.HMCLeaves;
-import io.github.fisher2911.hmcleaves.data.BlockData;
-import io.github.fisher2911.hmcleaves.data.LeafData;
-import io.github.fisher2911.hmcleaves.data.LogData;
-import io.github.fisher2911.hmcleaves.data.SaplingData;
+import io.github.fisher2911.hmcleaves.data.*;
 import io.github.fisher2911.hmcleaves.hook.Hooks;
 import org.bukkit.Material;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.Sign;
+import org.bukkit.block.data.Directional;
 
 import java.io.File;
 import java.io.IOException;
@@ -80,6 +80,13 @@ public class TextureFileGenerator {
                                         blockData.modelPath()
                                 );
                             }
+                            if (blockData instanceof CaveVineData) {
+                                return new JSONData(
+                                        convertDataToString(blockData),
+                                        blockData.id(),
+                                        blockData.modelPath()
+                                );
+                            }
                             if (blockData instanceof final LogData logData) {
                                 return new JSONData(
                                         convertDataToString(blockData),
@@ -106,7 +113,9 @@ public class TextureFileGenerator {
             e.printStackTrace();
             return;
         }
+
         Hooks.transferTextures(file);
+        System.out.println("debug: generate files");
     }
 
     // leaves
@@ -117,6 +126,9 @@ public class TextureFileGenerator {
 
     // saplings
     private static final String STAGE = "stage";
+
+    private static final String AGE_KEY = "age";
+    private static final String BERRIES_KEY = "berries";
 
     private static String convertDataToString(BlockData blockData) {
         if (blockData instanceof final LeafData leafData) {
@@ -129,8 +141,18 @@ public class TextureFileGenerator {
             final WrappedBlockState state = logData.getNewState(null);
             return INSTRUMENT_KEY + "=" + state.getInstrument().name() + "," + NOTE_KEY + "=" + state.getNote();
         }
+        if (blockData instanceof final CaveVineData veinData) {
+            int age = veinData.getNewState(null).getGlobalId();
+            String s = veinData.modelPath();
+            System.out.println("model:"+s);
+            System.out.println("age:"+age);
+            return AGE_KEY + "=" + (veinData.getNewState(null).getAge()+1) + "," + BERRIES_KEY + "=" + veinData.glowBerry();
+        }
         throw new IllegalArgumentException(blockData.getClass().getSimpleName() + " cannot be converted to a string for texture file!");
+
+
     }
+
 
     private static class Variants {
 
